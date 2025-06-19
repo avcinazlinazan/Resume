@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Özgeçmiş Yükle ve Analiz Et</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f6fb; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 40px auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 16px #0001; padding: 32px; }
+        h1 { text-align: center; color: #2d3a4b; }
+        form { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
+        input[type="file"] { padding: 8px; }
+        button { background: #3b82f6; color: #fff; border: none; padding: 12px; border-radius: 6px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+        button:hover { background: #2563eb; }
+        .card { background: #f9fafb; border-radius: 10px; box-shadow: 0 1px 6px #0001; padding: 20px; margin-bottom: 16px; }
+        .card h2 { margin-top: 0; color: #2563eb; }
+        .label { font-weight: bold; color: #374151; }
+        ul { margin: 0 0 12px 20px; }
+        .error { color: #dc2626; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Özgeçmiş Yükle ve Analiz Et</h1>
+        <form id="uploadForm">
+            <input type="file" name="file" accept=".pdf,.docx,.txt,.jpg,.jpeg,.png" required>
+            <button type="submit">Yükle ve Analiz Et</button>
+        </form>
+        <div id="result"></div>
+        <div id="error" class="error"></div>
+    </div>
+    <script>
+        const form = document.getElementById('uploadForm');
+        const resultDiv = document.getElementById('result');
+        const errorDiv = document.getElementById('error');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            resultDiv.innerHTML = '';
+            errorDiv.textContent = '';
+            const formData = new FormData(form);
+            try {
+                const response = await fetch('/parse_resume', {
+                    method: 'POST',
+                    body: formData
+                });
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail || 'Bir hata oluştu');
+                }
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <div class="card">
+                        <h2>${data.title || 'Başlık Yok'}</h2>
+                        <p><span class="label">Özet:</span> ${data.summary || '-'}</p>
+                        <p><span class="label">Beceriler:</span> ${data.skills.join(', ') || '-'}</p>
+                        <p><span class="label">Kişisel Beceriler:</span> ${data.soft_skills.join(', ') || '-'}</p>
+                        <p><span class="label">Sertifikalar:</span> ${data.certificates.join(', ') || '-'}</p>
+                        <p><span class="label">Diller:</span> ${data.languages.join(', ') || '-'}</p>
+                        <div>
+                            <span class="label">Tecrübeler:</span>
+                            <ul>
+                                ${data.experiences.map(exp => `<li><b>${exp.company}:</b> ${exp.summary}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            } catch (err) {
+                errorDiv.textContent = err.message;
+            }
+        });
+    </script>
+</body>
+</html>
